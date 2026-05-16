@@ -21,6 +21,7 @@ async function main() {
 
   const maria = await prisma.placeMaker.create({
     data: {
+      id: 'pm_maria',
       slug: 'maria',
       name: 'Maria Vasquez',
       role: 'sommelier',
@@ -33,6 +34,7 @@ async function main() {
 
   const diana = await prisma.placeMaker.create({
     data: {
+      id: 'pm_diana',
       slug: 'diana',
       name: 'Diana Park',
       role: 'front_desk',
@@ -45,6 +47,7 @@ async function main() {
 
   const tomas = await prisma.placeMaker.create({
     data: {
+      id: 'pm_tomas',
       slug: 'tomas',
       name: 'Tomás Reyes',
       role: 'housekeeping',
@@ -58,6 +61,7 @@ async function main() {
   const apostoliPhone = process.env.DEMO_GUEST_PHONE || '+15555550199';
   const apostoli = await prisma.guest.create({
     data: {
+      id: 'apostoli',
       name: 'Apostoli Evreniadis',
       phone: apostoliPhone,
       partnerName: 'Anna',
@@ -77,6 +81,7 @@ async function main() {
 
   const lena = await prisma.guest.create({
     data: {
+      id: 'lena',
       name: 'Lena Chen',
       phone: '+15555550144',
       origin: 'Singapore · Palo Alto',
