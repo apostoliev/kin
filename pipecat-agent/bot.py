@@ -1,10 +1,10 @@
-"""Kin Dictation — passive Pipecat listener.
+"""Kin Dictation — passive Pipecat listener with ElevenLabs STT.
 
 A staff member opens a private voice session from the Kin dashboard. This agent
 listens silently and uses Pipecat's voice-activity detection (VAD) to slice
-speech into discrete turns. On each turn (utterance end), it POSTs the
-finalized transcript to the Kin extractor endpoint, which decides whether the
-utterance contains a guest observation worth storing.
+speech into discrete turns. ElevenLabs Scribe transcribes each turn, and the
+agent POSTs the finalized transcript to the Kin extractor endpoint, which
+decides whether the utterance contains a guest observation worth storing.
 
 No LLM, no TTS, no replies. Pure ambient capture.
 
@@ -14,15 +14,18 @@ Deployed to Pipecat Cloud. Entry point: ``bot``.
 from __future__ import annotations
 
 import asyncio
+import os
 
 import aiohttp
 from loguru import logger
 
+from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.frames.frames import EndFrame, Frame, TranscriptionFrame
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
+from pipecat.services.elevenlabs.stt import ElevenLabsSTTService
 from pipecat.transports.daily.transport import DailyParams, DailyTransport
 from pipecatcloud.agent import DailySessionArguments
 
@@ -86,10 +89,15 @@ async def bot(args: DailySessionArguments) -> None:
         )
         return
 
-    # The turn endpoint differs from the legacy webhook. Append /turn to the
-    # base callback URL if the host passed the older webhook URL.
     if callback_url.endswith("/api/pipecat/webhook"):
         callback_url = callback_url.replace("/api/pipecat/webhook", "/api/pipecat/turn")
+
+    elevenlabs_key = os.getenv("ELEVENLABS_API_KEY")
+    if not elevenlabs_key:
+        logger.error(
+            "ELEVENLABS_API_KEY missing in agent environment. Set the kin-secrets secret set."
+        )
+        return
 
     logger.info(
         f"[{session_id}] starting passive dictation; turns post to {callback_url} "
@@ -103,9 +111,15 @@ async def bot(args: DailySessionArguments) -> None:
         DailyParams(
             audio_in_enabled=True,
             audio_out_enabled=False,
-            transcription_enabled=True,
-            vad_enabled=True,
+            vad_analyzer=SileroVADAnalyzer(),
         ),
+    )
+
+    aiohttp_session = aiohttp.ClientSession()
+
+    stt = ElevenLabsSTTService(
+        api_key=elevenlabs_key,
+        aiohttp_session=aiohttp_session,
     )
 
     poster = TurnPoster(
@@ -114,7 +128,7 @@ async def bot(args: DailySessionArguments) -> None:
         source_placemaker_id=source_placemaker_id,
     )
 
-    pipeline = Pipeline([transport.input(), poster, transport.output()])
+    pipeline = Pipeline([transport.input(), stt, poster, transport.output()])
     task = PipelineTask(pipeline, params=PipelineParams(allow_interruptions=True))
 
     @transport.event_handler("on_first_participant_joined")
@@ -126,5 +140,8 @@ async def bot(args: DailySessionArguments) -> None:
         logger.info(f"[{session_id}] participant left ({reason})")
         await task.queue_frame(EndFrame())
 
-    runner = PipelineRunner()
-    await runner.run(task)
+    try:
+        runner = PipelineRunner()
+        await runner.run(task)
+    finally:
+        await aiohttp_session.close()
