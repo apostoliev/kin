@@ -1,15 +1,19 @@
-"""Kin Dictation — minimal Pipecat agent.
+"""Kin Dictation — passive Pipecat listener.
 
 A staff member opens a private voice session from the Kin dashboard. This agent
-listens, transcribes (Daily real-time transcription), and POSTs the final
-transcript to the Kin webhook when the participant leaves. No LLM, no TTS.
+listens silently and uses Pipecat's voice-activity detection (VAD) to slice
+speech into discrete turns. On each turn (utterance end), it POSTs the
+finalized transcript to the Kin extractor endpoint, which decides whether the
+utterance contains a guest observation worth storing.
+
+No LLM, no TTS, no replies. Pure ambient capture.
 
 Deployed to Pipecat Cloud. Entry point: ``bot``.
 """
 
 from __future__ import annotations
 
-import os
+import asyncio
 
 import aiohttp
 from loguru import logger
@@ -23,82 +27,73 @@ from pipecat.transports.daily.transport import DailyParams, DailyTransport
 from pipecatcloud.agent import DailySessionArguments
 
 
-class TranscriptCollector(FrameProcessor):
-    """Collects TranscriptionFrames and posts the final concatenated transcript."""
+class TurnPoster(FrameProcessor):
+    """Posts each finalized transcription turn to the Kin extractor endpoint."""
 
     def __init__(
         self,
         callback_url: str,
         session_id: str,
-        guest_id: str,
         source_placemaker_id: str,
     ) -> None:
         super().__init__()
         self.callback_url = callback_url
         self.session_id = session_id
-        self.guest_id = guest_id
         self.source_placemaker_id = source_placemaker_id
-        self._parts: list[str] = []
-        self._posted = False
+        self._turn_count = 0
 
     async def process_frame(self, frame: Frame, direction: FrameDirection) -> None:
         await super().process_frame(frame, direction)
         if isinstance(frame, TranscriptionFrame):
             text = (frame.text or "").strip()
             if text:
-                self._parts.append(text)
-                logger.info(f"[{self.session_id}] partial: {text}")
-        elif isinstance(frame, EndFrame):
-            await self.post_transcript()
+                self._turn_count += 1
+                logger.info(f"[{self.session_id}] turn #{self._turn_count}: {text}")
+                asyncio.create_task(self._post(text))
         await self.push_frame(frame, direction)
 
-    async def post_transcript(self) -> None:
-        if self._posted:
-            return
-        self._posted = True
-        transcript = " ".join(self._parts).strip()
-        if not transcript:
-            logger.warning(f"[{self.session_id}] no transcript collected — nothing to post")
-            return
+    async def _post(self, text: str) -> None:
         payload = {
             "sessionId": self.session_id,
-            "guestId": self.guest_id,
             "sourcePlaceMakerId": self.source_placemaker_id,
-            "transcript": transcript,
-            "eventType": "final",
+            "transcript": text,
         }
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.post(
                     self.callback_url,
                     json=payload,
-                    timeout=aiohttp.ClientTimeout(total=10),
+                    timeout=aiohttp.ClientTimeout(total=15),
                 ) as resp:
                     body = await resp.text()
                     logger.info(
-                        f"[{self.session_id}] posted transcript ({len(transcript)} chars) → "
-                        f"status={resp.status} body={body[:120]}"
+                        f"[{self.session_id}] turn posted → status={resp.status} "
+                        f"body={body[:160]}"
                     )
             except Exception as e:
-                logger.error(f"[{self.session_id}] webhook post failed: {e}")
+                logger.error(f"[{self.session_id}] turn post failed: {e}")
 
 
 async def bot(args: DailySessionArguments) -> None:
     body = args.body or {}
     session_id = body.get("sessionId", "unknown")
-    guest_id = body.get("guestId")
     source_placemaker_id = body.get("sourcePlaceMakerId")
     callback_url = body.get("callbackUrl")
 
-    if not (guest_id and source_placemaker_id and callback_url):
+    if not (source_placemaker_id and callback_url):
         logger.error(
-            "Missing one of guestId, sourcePlaceMakerId, callbackUrl in session body."
+            "Missing sourcePlaceMakerId or callbackUrl in session body."
         )
         return
 
+    # The turn endpoint differs from the legacy webhook. Append /turn to the
+    # base callback URL if the host passed the older webhook URL.
+    if callback_url.endswith("/api/pipecat/webhook"):
+        callback_url = callback_url.replace("/api/pipecat/webhook", "/api/pipecat/turn")
+
     logger.info(
-        f"[{session_id}] starting dictation session for guest={guest_id} "
-        f"placeMaker={source_placemaker_id}"
+        f"[{session_id}] starting passive dictation; turns post to {callback_url} "
+        f"as place-maker {source_placemaker_id}"
     )
 
     transport = DailyTransport(
@@ -113,14 +108,13 @@ async def bot(args: DailySessionArguments) -> None:
         ),
     )
 
-    collector = TranscriptCollector(
+    poster = TurnPoster(
         callback_url=callback_url,
         session_id=session_id,
-        guest_id=guest_id,
         source_placemaker_id=source_placemaker_id,
     )
 
-    pipeline = Pipeline([transport.input(), collector, transport.output()])
+    pipeline = Pipeline([transport.input(), poster, transport.output()])
     task = PipelineTask(pipeline, params=PipelineParams(allow_interruptions=True))
 
     @transport.event_handler("on_first_participant_joined")
@@ -129,8 +123,7 @@ async def bot(args: DailySessionArguments) -> None:
 
     @transport.event_handler("on_participant_left")
     async def on_participant_left(_t, participant, reason):
-        logger.info(f"[{session_id}] participant left ({reason}); flushing transcript")
-        await collector.post_transcript()
+        logger.info(f"[{session_id}] participant left ({reason})")
         await task.queue_frame(EndFrame())
 
     runner = PipelineRunner()
