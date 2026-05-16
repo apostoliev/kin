@@ -117,26 +117,46 @@ export function CaptureModal({
       const call = DailyIframe.createCallObject({
         audioSource: true,
         videoSource: false,
+        startAudioOff: false,
+        startVideoOff: true,
       });
       callRef.current = call;
 
       call.on('participant-updated', (ev) => {
         if (ev?.participant?.local) {
-          setUserSpeaking(!!ev.participant.tracks?.audio?.state && ev.participant.tracks.audio.state === 'playable');
+          const audioState = ev.participant.tracks?.audio?.state;
+          console.log('[kin] local audio state:', audioState, ev.participant.tracks?.audio);
+          setUserSpeaking(audioState === 'playable');
         }
       });
-      call.on('joined-meeting', () => setSpeakState('listening'));
+      call.on('joined-meeting', async () => {
+        console.log('[kin] joined meeting; enabling local audio');
+        try {
+          await call.setLocalAudio(true);
+        } catch (e) {
+          console.warn('[kin] setLocalAudio failed', e);
+        }
+        setSpeakState('listening');
+      });
       call.on('left-meeting', () => {
-        // transcript will arrive via webhook
+        console.log('[kin] left meeting');
       });
       call.on('error', (err) => {
-        console.error('Daily error', err);
+        console.error('[kin] daily error', err);
         setSpeakState('error');
         setSpeakError(String(err?.errorMsg || 'daily error'));
       });
+      call.on('camera-error', (err) => {
+        console.warn('[kin] camera-error (expected; no video):', err);
+      });
 
       setSpeakState('connecting');
-      await call.join({ url: data.roomUrl, token: data.token });
+      await call.join({
+        url: data.roomUrl,
+        token: data.token,
+        startAudioOff: false,
+        startVideoOff: true,
+      });
     } catch (err) {
       setSpeakState('error');
       setSpeakError(err instanceof Error ? err.message : 'unknown');
