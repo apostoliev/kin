@@ -14,7 +14,7 @@ export function Thread({
 }) {
   if (!items.length) {
     return (
-      <div className="text-sm text-muted italic">No messages yet.</div>
+      <div className="text-[13px] text-stone italic font-serif">No messages yet.</div>
     );
   }
   return (
@@ -29,17 +29,23 @@ export function Thread({
           >
             <div
               className={cn(
-                'max-w-[78%] rounded-2xl px-4 py-3',
+                'max-w-[78%] border px-4 py-3',
                 onLeft
-                  ? 'bg-sandlight text-ink rounded-tl-md'
-                  : 'bg-discovery text-cream rounded-tr-md'
+                  ? 'bg-paperLight border-hair'
+                  : 'bg-whisper border-hair'
               )}
+              style={{ borderRadius: 2 }}
             >
-              <div className={cn('text-[10px] uppercase tracking-widest mb-1', onLeft ? 'text-muted' : 'text-cream/70')}>
+              <div
+                className={cn(
+                  'uppercase mb-1 text-stone',
+                  'text-[9.5px] tracking-[0.22em]'
+                )}
+              >
                 {it.kind === 'message' ? it.fromName : 'You'}
                 <span className="opacity-70"> · {relativeTime(it.at)}</span>
               </div>
-              <div className="whitespace-pre-wrap text-[15px] leading-relaxed font-serif">
+              <div className="whitespace-pre-wrap text-[15.5px] leading-[1.55] font-serif text-inkSoft">
                 {it.content}
               </div>
             </div>

@@ -7,11 +7,17 @@ export type BriefForDisplay = {
   recipient: { slug: string; name: string; role: string; title?: string | null };
 };
 
-export function BriefTrio({ briefs, freshIds }: { briefs: BriefForDisplay[]; freshIds?: Set<string> }) {
+export function BriefTrio({
+  briefs,
+  freshIds,
+}: {
+  briefs: BriefForDisplay[];
+  freshIds?: Set<string>;
+}) {
   if (!briefs.length) {
     return (
-      <div className="card p-10 text-center text-muted text-sm italic">
-        No briefs yet — capture a note to see the discretion engine fan out across roles.
+      <div className="card p-10 text-center text-stone text-[14px] italic font-serif">
+        No briefs yet — capture an observation to see the discretion engine fan out.
       </div>
     );
   }

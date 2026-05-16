@@ -1,46 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --font-display: 'Cormorant Garamond', 'Playfair Display', serif;
+    --font-display: 'EB Garamond', 'Iowan Old Style', Garamond, serif;
     --font-body: 'Inter', -apple-system, system-ui, sans-serif;
+    --iris-green: #1F4A3A;
   }
 
   html, body {
-    background: theme(colors.cream);
+    background: theme(colors.paper);
     color: theme(colors.ink);
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
-  h1, h2, h3 {
+  h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.01em;
     font-weight: 500;
+    letter-spacing: -0.01em;
+    color: theme(colors.ink);
   }
 }
 
 @layer components {
+  .editorial-caps {
+    @apply uppercase text-stone;
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    line-height: 1.3;
+  }
+
+  .editorial-caps-wide {
+    @apply uppercase text-stone;
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.30em;
+    line-height: 1.3;
+  }
+
   .card {
-    @apply bg-whisper border border-mist rounded-xl;
+    background: theme(colors.paperLight);
+    border: 1px solid theme(colors.hair);
+    border-radius: 2px;
+  }
+
+  .card-inset {
+    background: theme(colors.whisper);
+    border: 1px solid theme(colors.hairSoft);
+    border-radius: 2px;
   }
 
   .hairline {
-    @apply border-t border-mist;
+    height: 1px;
+    background: theme(colors.hair);
+    width: 100%;
   }
 
   .pill {
-    @apply inline-flex items-center gap-1 rounded-full border border-mist px-2.5 py-0.5 text-xs text-muted;
+    @apply inline-flex items-center gap-1 border border-hair px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase text-stone bg-paperLight;
+    border-radius: 2px;
   }
 
   .button-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-discovery text-cream px-4 py-2 text-sm font-medium tracking-wide hover:bg-discovery2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 bg-discovery text-paperLight px-4 py-2.5 text-[11px] font-medium tracking-[0.18em] uppercase hover:bg-discoveryDeep transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    border-radius: 2px;
   }
 
   .button-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-mist bg-whisper px-4 py-2 text-sm text-ink hover:bg-sandlight transition-colors;
+    @apply inline-flex items-center justify-center gap-2 border border-hair bg-paperLight px-4 py-2.5 text-[11px] tracking-[0.18em] uppercase text-ink hover:bg-whisper transition-colors;
+    border-radius: 2px;
+  }
+
+  .link-discovery {
+    @apply text-discovery hover:text-discoveryDeep transition-colors;
   }
 }

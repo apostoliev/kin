@@ -189,7 +189,7 @@ export function CaptureModal({
                 Observation about {guestName.split(' ')[0]}
               </Dialog.Title>
               <Dialog.Description className="text-xs text-muted mt-1">
-                Stored privately as a Raw Note. Maître abstracts it by role before anyone sees it.
+                Stored privately as a Raw Note. Iris abstracts it by role before anyone sees it.
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -233,7 +233,7 @@ export function CaptureModal({
                     <Mic className="h-8 w-8" />
                   </button>
                   <p className="text-sm text-muted text-center max-w-xs">
-                    Tap to open a private voice session. Maître transcribes and structures.
+                    Tap to open a private voice session. Iris transcribes and structures.
                   </p>
                 </>
               )}
@@ -277,7 +277,7 @@ export function CaptureModal({
                     <Square className="h-4 w-4" /> I'm done
                   </button>
                   <p className="text-xs text-muted text-center max-w-xs">
-                    Speak naturally — Maître will structure what matters and discard the rest.
+                    Speak naturally — Iris will structure what matters and discard the rest.
                   </p>
                 </>
               )}
@@ -296,7 +296,7 @@ export function CaptureModal({
                   <div className="h-20 w-20 rounded-full bg-discovery flex items-center justify-center text-cream font-serif text-2xl">
                     ✓
                   </div>
-                  <p className="text-sm text-discovery">Captured. Maître is fanning briefs across roles…</p>
+                  <p className="text-sm text-discovery">Captured. Iris is fanning briefs across roles…</p>
                 </>
               )}
 

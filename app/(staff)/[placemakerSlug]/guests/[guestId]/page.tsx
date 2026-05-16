@@ -96,6 +96,9 @@ export default async function GuestCockpitPage({
           origin: guest.origin,
           interestTags: guest.interestTags,
           notes: guest.notes,
+          stayState: guest.stayState,
+          arrivalAt: guest.arrivalAt?.toISOString() ?? null,
+          visitCount: guest.visitCount,
         }}
         initialBriefs={briefs.map((b) => ({
           id: b.id,

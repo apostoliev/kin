@@ -8,16 +8,20 @@ datasource db {
 }
 
 model Guest {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String
-  phone        String?  @unique
-  notes        String?  @db.Text
-  interestTags String[] @default([])
+  phone        String?   @unique
+  notes        String?   @db.Text
+  interestTags String[]  @default([])
   anniversary  String?
   partnerName  String?
   origin       String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  arrivalAt    DateTime?
+  departureAt  DateTime?
+  stayState    String    @default("past")
+  visitCount   Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   relationships RelationshipRecord[]
   rawNotes      RawNote[]

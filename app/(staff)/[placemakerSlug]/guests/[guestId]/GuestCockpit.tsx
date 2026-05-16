@@ -1,12 +1,14 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { Pill } from '@/components/Pill';
+import { useState } from 'react';
 import { BriefTrio, type BriefForDisplay } from '@/components/BriefTrio';
 import { DraftCard, type DraftCardData } from '@/components/DraftCard';
 import { Thread, type ThreadItem } from '@/components/Thread';
 import { CaptureModal } from '@/components/CaptureModal';
 import { useSse } from '@/lib/use-sse';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { SmallCaps } from '@/components/iris/SmallCaps';
+import { Initials } from '@/components/iris/Initials';
+import { MaitreMark } from '@/components/iris/Marks';
 
 type Guest = {
   id: string;
@@ -16,6 +18,9 @@ type Guest = {
   origin?: string | null;
   interestTags: string[];
   notes?: string | null;
+  stayState?: string | null;
+  arrivalAt?: string | null;
+  visitCount?: number | null;
 };
 
 export function GuestCockpit({
@@ -43,7 +48,7 @@ export function GuestCockpit({
   useSse(`guest-${guest.id}`, (event) => {
     if (event.type === 'note.captured') {
       setWorking(true);
-      setFlash('Maître is fanning the brief across roles…');
+      setFlash('Iris is fanning the brief across roles…');
     }
     if (event.type === 'regenerate.started') {
       setWorking(true);
@@ -92,46 +97,69 @@ export function GuestCockpit({
     setThread(data.items ?? []);
   }
 
+  const firstName = guest.name.split(' ')[0];
+  const stayBadge =
+    guest.stayState === 'on_property'
+      ? 'On property tonight'
+      : guest.stayState === 'upcoming'
+        ? 'Booked · upcoming'
+        : 'Past · between stays';
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
-      <aside className="flex flex-col gap-6">
-        <div>
-          <div className="text-xs uppercase tracking-[0.3em] text-muted">Guest</div>
-          <h1 className="font-serif text-4xl text-ink leading-tight mt-1">{guest.name}</h1>
-          {guest.origin && (
-            <div className="text-sm text-muted mt-1">{guest.origin}</div>
-          )}
+    <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-12">
+      {/* Profile sidebar */}
+      <aside className="flex flex-col gap-7">
+        <div className="flex flex-col gap-3">
+          <SmallCaps tracking={0.3}>Guest</SmallCaps>
+          <div className="flex items-center gap-4">
+            <Initials name={guest.name} size={64} tone="dark" />
+            <div className="flex flex-col">
+              <h1 className="font-serif text-[32px] text-ink leading-[1.05]">{firstName}.</h1>
+              <span className="font-serif text-[15px] text-inkFaint italic">
+                {guest.name.split(' ').slice(1).join(' ')}
+              </span>
+            </div>
+          </div>
+          <SmallCaps size={10} tracking={0.22}>
+            {stayBadge}
+            {guest.visitCount ? ` · ${guest.visitCount} visits` : ''}
+          </SmallCaps>
         </div>
-        <div className="flex flex-col gap-3 text-sm">
-          {guest.partnerName && (
-            <Row label="Partner">{guest.partnerName}</Row>
-          )}
-          {guest.anniversary && (
-            <Row label="Anniversary">{guest.anniversary}</Row>
-          )}
+
+        <div className="hairline" />
+
+        <div className="flex flex-col gap-4 text-[13.5px]">
+          {guest.origin && <Row label="Origin">{guest.origin}</Row>}
+          {guest.partnerName && <Row label="Partner">{guest.partnerName}</Row>}
+          {guest.anniversary && <Row label="Anniversary">{guest.anniversary}</Row>}
           {guest.interestTags.length > 0 && (
             <div>
-              <div className="text-xs uppercase tracking-widest text-muted mb-1.5">
-                Preferences
-              </div>
-              <div className="flex flex-wrap gap-1.5">
+              <SmallCaps size={9.5} tracking={0.22}>
+                The cellar remembers
+              </SmallCaps>
+              <ul className="mt-2 flex flex-col gap-1.5">
                 {guest.interestTags.map((t) => (
-                  <Pill key={t}>{t}</Pill>
+                  <li key={t} className="font-serif text-[14.5px] text-inkSoft italic">
+                    — {t}
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )}
           {guest.notes && (
             <div>
-              <div className="text-xs uppercase tracking-widest text-muted mb-1.5">
+              <SmallCaps size={9.5} tracking={0.22}>
                 Notes
-              </div>
-              <p className="font-serif text-[15px] leading-relaxed text-ink/80">
+              </SmallCaps>
+              <p className="font-serif text-[15px] leading-[1.55] text-inkFaint mt-2">
                 {guest.notes}
               </p>
             </div>
           )}
         </div>
+
+        <div className="hairline" />
+
         <CaptureModal
           guestId={guest.id}
           sourcePlaceMakerId={placeMakerId}
@@ -139,49 +167,62 @@ export function GuestCockpit({
         />
       </aside>
 
-      <div className="flex flex-col gap-8">
+      {/* Main column */}
+      <div className="flex flex-col gap-14">
+        {/* Briefs by role */}
         <section>
-          <div className="flex items-baseline justify-between mb-3">
-            <h2 className="font-serif text-3xl text-ink">Briefs by role</h2>
+          <div className="flex items-baseline justify-between mb-2">
+            <SmallCaps tracking={0.3}>Briefs by role</SmallCaps>
             <div className="flex items-center gap-2">
               {working && (
-                <span className="inline-flex items-center gap-1.5 text-xs text-discovery">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Maître is thinking
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-discovery uppercase tracking-[0.22em]">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Iris is thinking
                 </span>
               )}
               {flash && !working && (
-                <span className="inline-flex items-center gap-1.5 text-xs text-discovery animate-fade-in-up">
-                  <Sparkles className="h-3.5 w-3.5" /> {flash}
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-discovery uppercase tracking-[0.22em] animate-fade-in-up">
+                  {flash}
                 </span>
               )}
             </div>
           </div>
-          <p className="text-sm text-muted mb-4 max-w-2xl">
-            Same observation. Different role, different abstraction. The discretion filter routes only what each person needs to know.
+          <h2 className="font-serif text-[26px] text-ink mb-2">Same observation, different shape.</h2>
+          <p className="font-serif text-[15.5px] text-inkFaint italic mb-5 max-w-2xl">
+            What each person needs to know, and nothing more. The discretion filter routes role-by-role.
           </p>
           <BriefTrio briefs={briefs} freshIds={freshBriefIds} />
+          <div className="flex items-center gap-2 mt-4">
+            <MaitreMark size={12} />
+            <SmallCaps size={9.5} tracking={0.22}>
+              Maître has noted his preference for a quiet stay.
+            </SmallCaps>
+          </div>
         </section>
 
+        {/* Drafted message */}
         <section>
-          <h2 className="font-serif text-3xl text-ink mb-3">Drafted in your voice</h2>
+          <SmallCaps tracking={0.3} className="mb-2 block">Drafted in your voice</SmallCaps>
+          <h2 className="font-serif text-[26px] text-ink mb-5">A note ready to send.</h2>
           <DraftCard
             draft={draft}
+            guestFirstName={firstName}
             onSent={() => {
               refreshThread();
             }}
           />
         </section>
 
+        {/* Thread */}
         <section>
           <div className="flex items-baseline justify-between mb-3">
-            <h2 className="font-serif text-3xl text-ink">Your thread with {guest.name.split(' ')[0]}</h2>
+            <SmallCaps tracking={0.3}>Thread with {firstName}</SmallCaps>
             <a
               href={`/g/${guest.id}`}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-muted hover:text-discovery"
+              className="text-[10px] uppercase tracking-[0.22em] text-stone hover:text-discovery"
             >
-              open guest view ↗
+              Open guest view ↗
             </a>
           </div>
           <Thread items={thread} perspective="staff" />
@@ -194,8 +235,10 @@ export function GuestCockpit({
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-widest text-muted mb-0.5">{label}</div>
-      <div className="text-ink">{children}</div>
+      <SmallCaps size={9.5} tracking={0.22}>
+        {label}
+      </SmallCaps>
+      <div className="font-serif text-[15.5px] text-inkSoft mt-1">{children}</div>
     </div>
   );
 }

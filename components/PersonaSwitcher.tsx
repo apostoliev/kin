@@ -12,24 +12,27 @@ export type PersonaOption = {
 
 export function PersonaSwitcher({ options }: { options: PersonaOption[] }) {
   const pathname = usePathname();
-  const activeSlug = pathname.split('/').filter(Boolean)[0] ?? null;
+  const first = pathname.split('/').filter(Boolean)[0] ?? null;
+  // Treat /manager as Carol
+  const activeSlug = first === 'manager' ? 'carol' : first;
+
   return (
-    <div className="flex items-center gap-1 rounded-full border border-mist bg-whisper p-1">
+    <div className="flex items-center gap-0 border border-hair bg-paperLight">
       {options.map((opt) => {
         const active = opt.slug === activeSlug;
-        const href = `/${opt.slug}`;
+        const href = opt.role === 'manager' ? '/manager' : `/${opt.slug}`;
         return (
           <Link
             key={opt.slug}
             href={href}
             className={cn(
-              'rounded-full px-3 py-1 text-xs transition-colors',
+              'px-3 py-2 text-[10px] uppercase tracking-[0.18em] transition-colors border-r border-hair last:border-r-0',
               active
-                ? 'bg-discovery text-cream'
-                : 'text-muted hover:bg-sandlight hover:text-ink'
+                ? 'bg-discovery text-paperLight'
+                : 'text-stone hover:bg-whisper hover:text-ink'
             )}
           >
-            <span className="font-medium tracking-wide">{opt.name.split(' ')[0]}</span>
+            <span className="font-medium">{opt.name.split(' ')[0]}</span>
             <span className="ml-1.5 opacity-70">· {roleLabel(opt.role)}</span>
           </Link>
         );
