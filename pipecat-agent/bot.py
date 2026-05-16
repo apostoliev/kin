@@ -110,6 +110,8 @@ async def bot(args: DailySessionArguments) -> None:
         "Kin Dictation",
         DailyParams(
             audio_in_enabled=True,
+            audio_in_user_tracks=False,
+            audio_in_passthrough=True,
             audio_out_enabled=False,
             vad_analyzer=SileroVADAnalyzer(),
         ),
