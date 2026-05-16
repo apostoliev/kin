@@ -4,7 +4,8 @@ const prisma = new PrismaClient();
 
 async function main() {
   const existing = await prisma.placeMaker.findUnique({ where: { slug: 'maria' } });
-  if (existing && !process.env.KIN_FORCE_RESEED) {
+  const forceReseed = process.env.KIN_FORCE_RESEED === 'true';
+  if (existing && !forceReseed) {
     console.log('Seed skipped — Kin data already present. Set KIN_FORCE_RESEED=true to reset.');
     return;
   }
