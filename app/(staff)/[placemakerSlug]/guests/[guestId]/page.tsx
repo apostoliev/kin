@@ -92,6 +92,7 @@ export default async function GuestCockpitPage({
       <GuestCockpit
         placeMakerId={placeMaker.id}
         placeMakerName={placeMaker.name}
+        placeMakerRole={placeMaker.role}
         guest={{
           id: guest.id,
           name: guest.name,

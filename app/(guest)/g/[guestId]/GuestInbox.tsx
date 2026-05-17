@@ -46,6 +46,8 @@ export function GuestInbox({
   );
   const [sending, setSending] = useState(false);
   const [mode, setMode] = useState<'inbox' | 'compose'>('inbox');
+  // When composeFresh is true, we're writing a NEW message (not replying).
+  const [composeFresh, setComposeFresh] = useState(false);
 
   useSse(`guest-${guest.id}`, (event) => {
     if (event.type === 'message.sent' || event.type === 'guest.replied') {
@@ -89,11 +91,18 @@ export function GuestInbox({
       if (res.ok) {
         setReplyText('');
         setMode('inbox');
+        setComposeFresh(false);
         refreshThread();
       }
     } finally {
       setSending(false);
     }
+  }
+
+  function openComposeTo(slug: string) {
+    setReplyingTo(slug);
+    setComposeFresh(true);
+    setMode('compose');
   }
 
   const activeMessage =
@@ -103,21 +112,45 @@ export function GuestInbox({
   const sender = activeMessage
     ? placeMakers.find((p) => p.slug === activeMessage.fromSlug)
     : null;
+  const composeTarget =
+    composeFresh && replyingTo
+      ? placeMakers.find((p) => p.slug === replyingTo) ?? null
+      : null;
   const guestFirst = guest.name.split(' ')[0];
 
-  if (mode === 'compose' && activeMessage && sender) {
-    return (
-      <ReplyComposeScreen
-        guestFirst={guestFirst}
-        sender={sender}
-        original={activeMessage.content}
-        value={replyText}
-        onChange={setReplyText}
-        onSend={sendReply}
-        sending={sending}
-        onBack={() => setMode('inbox')}
-      />
-    );
+  // Compose mode covers both replies and fresh "write to anyone in your circle".
+  if (mode === 'compose') {
+    if (composeFresh && composeTarget) {
+      return (
+        <ReplyComposeScreen
+          guestFirst={guestFirst}
+          sender={composeTarget}
+          original={null}
+          value={replyText}
+          onChange={setReplyText}
+          onSend={sendReply}
+          sending={sending}
+          onBack={() => {
+            setMode('inbox');
+            setComposeFresh(false);
+          }}
+        />
+      );
+    }
+    if (activeMessage && sender) {
+      return (
+        <ReplyComposeScreen
+          guestFirst={guestFirst}
+          sender={sender}
+          original={activeMessage.content}
+          value={replyText}
+          onChange={setReplyText}
+          onSend={sendReply}
+          sending={sending}
+          onBack={() => setMode('inbox')}
+        />
+      );
+    }
   }
 
   return (
@@ -152,17 +185,21 @@ export function GuestInbox({
       <section className="px-6 py-8">
         <SmallCaps tracking={0.3}>Your circle at Sand Hill</SmallCaps>
         <p className="font-serif text-[19px] text-ink mt-2 leading-snug max-w-[36ch] italic">
-          The people here who know you, {guestFirst}.
+          The people here who know you, {guestFirst}. Tap anyone to write.
         </p>
         <div className="mt-6 flex gap-5 overflow-x-auto pb-2 -mx-1 px-1">
           {placeMakers.map((pm) => {
             const meta = circleMeta(pm);
             return (
-              <div
+              <button
+                type="button"
                 key={pm.slug}
-                className="flex flex-col items-center gap-2 flex-shrink-0 w-[88px]"
+                onClick={() => openComposeTo(pm.slug)}
+                className="flex flex-col items-center gap-2 flex-shrink-0 w-[88px] focus:outline-none group"
               >
-                <Initials name={pm.name} size={68} tone="paper" />
+                <span className="rounded-full transition-transform group-hover:-translate-y-0.5 group-focus:-translate-y-0.5">
+                  <Initials name={pm.name} size={68} tone="paper" />
+                </span>
                 <span className="font-serif text-[15px] text-ink leading-tight text-center">
                   {pm.name.split(' ')[0]}
                 </span>
@@ -179,7 +216,7 @@ export function GuestInbox({
                     {meta}
                   </SmallCaps>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -312,39 +349,62 @@ function ReplyComposeScreen({
 }: {
   guestFirst: string;
   sender: PlaceMakerCard;
-  original: string;
+  original: string | null;
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
   sending: boolean;
   onBack: () => void;
 }) {
+  const senderFirst = sender.name.split(' ')[0];
+  const isFresh = original === null;
   return (
     <div className="min-h-screen bg-paper flex flex-col">
       <header className="px-6 pt-10 pb-4 flex items-center justify-between border-b border-hair">
         <button type="button" onClick={onBack} className="text-stone">
           <SmallCaps tracking={0.22}>← back</SmallCaps>
         </button>
-        <SmallCaps tracking={0.3}>Reply to {sender.name.split(' ')[0]}</SmallCaps>
+        <SmallCaps tracking={0.3}>
+          {isFresh ? `Write to ${senderFirst}` : `Reply to ${senderFirst}`}
+        </SmallCaps>
         <div className="w-10" />
       </header>
       <div className="px-7 py-6 flex-1 flex flex-col gap-6">
-        <div
-          className="card-inset px-5 py-4"
-          style={{ borderLeft: '2px solid #D8D3CB' }}
-        >
-          <SmallCaps size={9.5} tracking={0.22}>
-            {sender.name} wrote
-          </SmallCaps>
-          <p className="font-serif text-[15px] leading-[1.55] text-inkFaint mt-2 italic whitespace-pre-wrap">
-            {original}
-          </p>
-        </div>
+        {isFresh ? (
+          <div className="flex items-center gap-3">
+            <Initials name={sender.name} size={48} tone="paper" />
+            <div className="flex flex-col">
+              <span className="font-serif text-[19px] text-ink leading-tight">
+                {sender.name}
+              </span>
+              <SmallCaps size={9.5} tracking={0.22}>
+                {sender.title ?? sender.role.replace('_', ' ')} ·{' '}
+                {sender.property}
+              </SmallCaps>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="card-inset px-5 py-4"
+            style={{ borderLeft: '2px solid #D8D3CB' }}
+          >
+            <SmallCaps size={9.5} tracking={0.22}>
+              {sender.name} wrote
+            </SmallCaps>
+            <p className="font-serif text-[15px] leading-[1.55] text-inkFaint mt-2 italic whitespace-pre-wrap">
+              {original}
+            </p>
+          </div>
+        )}
         <div className="flex-1 relative">
           <textarea
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={`Write to ${sender.name.split(' ')[0]}…`}
+            placeholder={
+              isFresh
+                ? `What would you like to say to ${senderFirst}, ${guestFirst}?`
+                : `Write to ${senderFirst}…`
+            }
             rows={6}
             autoFocus
             className="w-full h-full resize-none bg-transparent font-serif text-[19px] leading-[1.5] text-inkSoft placeholder:italic placeholder:text-stoneLight focus:outline-none"
@@ -358,7 +418,7 @@ function ReplyComposeScreen({
           disabled={sending || !value.trim()}
           className="button-primary w-full"
         >
-          {sending ? 'Sending…' : `Send to ${sender.name.split(' ')[0]} →`}
+          {sending ? 'Sending…' : `Send to ${senderFirst} →`}
         </button>
       </footer>
     </div>

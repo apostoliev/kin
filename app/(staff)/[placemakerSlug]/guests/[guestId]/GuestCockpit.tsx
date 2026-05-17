@@ -5,6 +5,7 @@ import { type BriefForDisplay } from '@/components/BriefTrio';
 import { DraftCard, type DraftCardData } from '@/components/DraftCard';
 import { Thread, type ThreadItem } from '@/components/Thread';
 import { CaptureModal } from '@/components/CaptureModal';
+import { ComposeMessage } from '@/components/ComposeMessage';
 import { useSse } from '@/lib/use-sse';
 import { Loader2 } from 'lucide-react';
 import { SmallCaps } from '@/components/iris/SmallCaps';
@@ -27,6 +28,7 @@ type Guest = {
 export function GuestCockpit({
   placeMakerId,
   placeMakerName,
+  placeMakerRole,
   guest,
   initialBrief,
   initialDraft,
@@ -34,6 +36,7 @@ export function GuestCockpit({
 }: {
   placeMakerId: string;
   placeMakerName: string;
+  placeMakerRole: string;
   guest: Guest;
   initialBrief: BriefForDisplay | null;
   initialDraft: DraftCardData | null;
@@ -216,9 +219,21 @@ export function GuestCockpit({
           </div>
         </section>
 
-        {/* Drafted message */}
+        {/* Drafted message + custom compose */}
         <section>
-          <SmallCaps tracking={0.3} className="mb-2 block">Drafted in your voice</SmallCaps>
+          <div className="flex items-baseline justify-between mb-2">
+            <SmallCaps tracking={0.3}>Drafted in your voice</SmallCaps>
+            <ComposeMessage
+              placeMakerId={placeMakerId}
+              placeMakerName={placeMakerName}
+              placeMakerRole={placeMakerRole}
+              guestId={guest.id}
+              guestName={guest.name}
+              onSent={() => {
+                refreshThread();
+              }}
+            />
+          </div>
           <h2 className="font-serif text-[26px] text-ink mb-5">A note ready to send.</h2>
           <DraftCard
             draft={draft}
