@@ -6,8 +6,10 @@ type SynthOptions = {
 
 const DEFAULT_VOICE_IDS: Record<string, string> = {
   sommelier: 'EXAVITQu4vr4xnSDxMaL',
+  concierge: 'XB0fDUnXU5powFXDhCwa',
   front_desk: 'TX3LPaxmHKxFdv7VOQHJ',
   housekeeping: 'pNInz6obpgDQGcFmaJgB',
+  manager: 'oWAxZDx7w5VEj9dCyTzz',
   default: 'EXAVITQu4vr4xnSDxMaL',
 };
 
