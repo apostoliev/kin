@@ -80,8 +80,14 @@ export default async function StaffDashboard({
     include: {
       guest: {
         include: {
+          // Only count drafts THIS place-maker has authored — the dashboard
+          // indicator should reflect what THIS person has waiting to send,
+          // not what some other teammate has queued.
           drafts: {
-            where: { status: 'draft' },
+            where: {
+              status: 'draft',
+              fromPlaceMakerId: placeMaker.id,
+            },
             orderBy: { createdAt: 'desc' },
             take: 1,
           },

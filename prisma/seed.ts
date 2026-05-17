@@ -9,9 +9,19 @@ const days = (n: number) => 1000 * 60 * 60 * 24 * n;
 async function main() {
   const existing = await prisma.placeMaker.findUnique({ where: { slug: 'maria' } });
   const hasNoor = await prisma.placeMaker.findUnique({ where: { slug: 'noor' } });
+  // Sentinel: a draft from Tomás to Daniel only exists in the v3 seed onward.
+  // If it's missing, the demo data is stale and should be regenerated.
+  const tomasDraftToDaniel = hasNoor
+    ? await prisma.messageDraft.findFirst({
+        where: {
+          guestId: 'daniel',
+          from: { slug: 'tomas' },
+          status: 'draft',
+        },
+      })
+    : null;
   const forceReseed = process.env.KIN_FORCE_RESEED === 'true';
-  // Auto-reseed if cast has changed (Noor missing) — keeps demo data current.
-  if (existing && hasNoor && !forceReseed) {
+  if (existing && hasNoor && tomasDraftToDaniel && !forceReseed) {
     console.log('Seed skipped — Iris demo data already present. Set KIN_FORCE_RESEED=true to reset.');
     return;
   }
@@ -408,6 +418,45 @@ async function main() {
       intent: 'pre_arrival_warm_outreach',
       status: 'draft',
       createdAt: new Date(twoDaysAgo.getTime() + 1000 * 60 * 2),
+    },
+  });
+
+  // Noor for Daniel — anniversary itinerary, in her plans-feel-inevitable voice.
+  await prisma.messageDraft.create({
+    data: {
+      fromPlaceMakerId: noor.id,
+      guestId: daniel.id,
+      content:
+        "Daniel — quiet table held for Friday at 8 in the smaller dining room. Car for Anna in the morning, 9:15 from SFO. Nothing else on the schedule unless you want it. — N.",
+      intent: 'pre_arrival_planning_confirmation',
+      status: 'draft',
+      createdAt: new Date(twoDaysAgo.getTime() + 1000 * 60 * 3),
+    },
+  });
+
+  // Diana for Daniel — crisp logistics, signs Diana.
+  await prisma.messageDraft.create({
+    data: {
+      fromPlaceMakerId: diana.id,
+      guestId: daniel.id,
+      content:
+        "Daniel — high-floor suite is ready as you like it. Soft welcome upstairs, no cart. Late check-in window held to midnight. See you when you land. — Diana",
+      intent: 'pre_arrival_logistics_confirmation',
+      status: 'draft',
+      createdAt: new Date(twoDaysAgo.getTime() + 1000 * 60 * 4),
+    },
+  });
+
+  // Tomás for Daniel — plain, respectful, the rare housekeeping note.
+  await prisma.messageDraft.create({
+    data: {
+      fromPlaceMakerId: tomas.id,
+      guestId: daniel.id,
+      content:
+        "Daniel — welcome back. The pillows you like are on the bed and we'll keep evenings quiet for you both. Anything else, just leave word at the desk. — Tomás, housekeeping",
+      intent: 'pre_arrival_welcome',
+      status: 'draft',
+      createdAt: new Date(twoDaysAgo.getTime() + 1000 * 60 * 5),
     },
   });
 
