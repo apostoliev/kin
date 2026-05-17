@@ -50,13 +50,19 @@ export default async function GuestInboxPage({
     })),
   ].sort((a, b) => a.at.localeCompare(b.at));
 
-  const placeMakers = guest.relationships.map((r) => ({
-    slug: r.placeMaker.slug,
-    name: r.placeMaker.name,
-    role: r.placeMaker.role,
-    title: r.placeMaker.title,
-    property: r.placeMaker.property,
-  }));
+  // Manager isn't a "person who knows you" from the guest's perspective —
+  // hide her from the circle (she's still in the network underneath).
+  const placeMakers = guest.relationships
+    .filter((r) => r.placeMaker.role !== 'manager')
+    .map((r) => ({
+      slug: r.placeMaker.slug,
+      name: r.placeMaker.name,
+      role: r.placeMaker.role,
+      title: r.placeMaker.title,
+      property: r.placeMaker.property,
+      visits: r.visits,
+      sinceYear: r.lastSeenAt ? r.lastSeenAt.getFullYear() : null,
+    }));
 
   return (
     <GuestInbox

@@ -14,6 +14,8 @@ type PlaceMakerCard = {
   role: string;
   title?: string | null;
   property: string;
+  visits?: number;
+  sinceYear?: number | null;
 };
 
 export function GuestInbox({
@@ -146,21 +148,40 @@ export function GuestInbox({
 
       <div className="hairline mx-6" />
 
-      {/* Your circle */}
-      <section className="px-6 py-7">
-        <SmallCaps tracking={0.3}>Your circle</SmallCaps>
-        <div className="mt-4 flex gap-5 overflow-x-auto pb-2 -mx-1 px-1">
-          {placeMakers.map((pm) => (
-            <div key={pm.slug} className="flex flex-col items-center gap-2 flex-shrink-0 w-[78px]">
-              <Initials name={pm.name} size={64} tone="paper" />
-              <span className="font-serif text-[14.5px] text-ink leading-tight text-center">
-                {pm.name.split(' ')[0]}
-              </span>
-              <SmallCaps size={8.5} tracking={0.22} className="text-center">
-                {pm.title ?? pm.role.replace('_', ' ')}
-              </SmallCaps>
-            </div>
-          ))}
+      {/* Your circle — the private network */}
+      <section className="px-6 py-8">
+        <SmallCaps tracking={0.3}>Your circle at Sand Hill</SmallCaps>
+        <p className="font-serif text-[19px] text-ink mt-2 leading-snug max-w-[36ch] italic">
+          The people here who know you, {guestFirst}.
+        </p>
+        <div className="mt-6 flex gap-5 overflow-x-auto pb-2 -mx-1 px-1">
+          {placeMakers.map((pm) => {
+            const meta = circleMeta(pm);
+            return (
+              <div
+                key={pm.slug}
+                className="flex flex-col items-center gap-2 flex-shrink-0 w-[88px]"
+              >
+                <Initials name={pm.name} size={68} tone="paper" />
+                <span className="font-serif text-[15px] text-ink leading-tight text-center">
+                  {pm.name.split(' ')[0]}
+                </span>
+                <SmallCaps size={8.5} tracking={0.22} className="text-center">
+                  {pm.title ?? pm.role.replace('_', ' ')}
+                </SmallCaps>
+                {meta && (
+                  <SmallCaps
+                    size={8.5}
+                    tracking={0.22}
+                    className="text-center"
+                    color="#B5B0A8"
+                  >
+                    {meta}
+                  </SmallCaps>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -216,7 +237,7 @@ export function GuestInbox({
 
       <footer className="border-t border-hair py-5 text-center">
         <SmallCaps size={9} tracking={0.3} color="#B5B0A8">
-          What we remember · for the people who serve you
+          A private network · between you and the people who serve you here
         </SmallCaps>
       </footer>
     </div>
@@ -342,6 +363,15 @@ function ReplyComposeScreen({
       </footer>
     </div>
   );
+}
+
+function circleMeta(pm: PlaceMakerCard): string | null {
+  const parts: string[] = [];
+  if (pm.visits && pm.visits > 0) {
+    parts.push(`${pm.visits} ${pm.visits === 1 ? 'stay' : 'stays'}`);
+  }
+  if (pm.sinceYear) parts.push(`since ${pm.sinceYear}`);
+  return parts.length ? parts.join(' · ') : null;
 }
 
 function formatShort(iso: string) {
